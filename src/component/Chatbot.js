@@ -1,52 +1,84 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as openai from 'openai';
 
 const Chatbot = () => {
-  const [prompt, setPrompt] = useState('');
-  const [response, setResponse] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const openaiClient = new openai.OpenAI({
+    apiKey: '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',
+    dangerouslyAllowBrowser: true, // If needed
+  });
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim()) return;
+  
+    // Use the functional form of setMessages to work with the latest state
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      { text: inputMessage, type: 'user' },
+      { text: '', type: 'bot' }, // Placeholder for bot reply, to be replaced
+    ]);
+    setInputMessage('');
+    setLoading(true);
   
     try {
-      // Initialize the OpenAI client
-      const openaiClient = new openai.OpenAI({ apiKey: 'vsk-goJHTaTGTxiPzrcZbketT3BlbkFJMmCfLSct4YghGh4dDUNV' });
-
-  
-      // Generate a response from OpenAI
-      const response = await openaiClient.createCompletion({
+      const response = await openaiClient.completions.create({
         model: 'text-davinci-002',
-        prompt,
+        prompt: inputMessage,
         temperature: 0.7,
+        max_tokens: 50, // Adjust based on your needs
       });
   
-      // Set the response state
-      setResponse(response.choices[0].text);
+      const botReply = response.choices[0].text;
+  
+      // Update the bot reply in the messages array
+      setMessages((prevMessages) =>
+        prevMessages.map((message, index) =>
+          index === prevMessages.length - 1
+            ? { ...message, text: botReply, type: 'bot' }
+            : message
+        )
+      );
     } catch (error) {
-      // Handle API error here, e.g., display an error message to the user
       console.error('Error generating response from OpenAI:', error);
-      // Optionally, set an error state or display an error message to the user
+    } finally {
+      setLoading(false);
     }
   };
   
-  return (
-    <div>
-      <h1>Chatbot</h1>
+  useEffect(() => {
+    // Scroll to the bottom of the chat when new messages are added
+    const chatContainer = document.getElementById('chat-container');
+    if (chatContainer) {
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+  }, [messages]);
 
-      <form onSubmit={handleSubmit}>
+  return (
+    <div className="chat-container" id="chat-container">
+      <div className="messages">
+        {messages.map((message, index) => (
+          <div key={index} className={`message ${message.type}`}>
+            {message.text}
+          </div>
+        ))}
+      </div>
+      <div className="input-container">
         <input
           type="text"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="Type your message..."
+          value={inputMessage}
+          onChange={(e) => setInputMessage(e.target.value)}
+          disabled={loading}
         />
-        <button type="submit">Submit</button>
-      </form>
-
-      <div>
-        <h2>Response:</h2>
-        <p>{response}</p>
+        <button onClick={handleSendMessage} disabled={loading}>
+          Send
+        </button>
       </div>
     </div>
   );
 };
+
 export default Chatbot;
