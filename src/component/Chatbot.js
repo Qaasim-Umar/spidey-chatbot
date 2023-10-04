@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import * as openai from 'openai';
 
+
 const Chatbot = () => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
   const openaiClient = new openai.OpenAI({
-    apiKey: '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',
-    dangerouslyAllowBrowser: true, // If needed
+    apiKey: `${process.env.OPENAI_API_KEY}` , 
   });
-
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
   
