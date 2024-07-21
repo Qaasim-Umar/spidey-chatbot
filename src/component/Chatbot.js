@@ -1,19 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import * as openai from 'openai';
-
 
 const Chatbot = () => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const openaiClient = new openai.OpenAI({
-    apiKey: `${process.env.OPENAI_API_KEY}` , 
-  });
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
-  
-    // Use the functional form of setMessages to work with the latest state
+
     setMessages((prevMessages) => [
       ...prevMessages,
       { text: inputMessage, type: 'user' },
@@ -21,17 +15,19 @@ const Chatbot = () => {
     ]);
     setInputMessage('');
     setLoading(true);
-  
+
     try {
-      const response = await openaiClient.completions.create({
-        model: 'text-davinci-002',
-        prompt: inputMessage,
-        temperature: 0.7,
-        max_tokens: 50, // Adjust based on your needs
+      const response = await fetch('/.netlify/functions/openai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt: inputMessage }),
       });
-  
-      const botReply = response.choices[0].text;
-  
+
+      const data = await response.json();
+      const botReply = data.choices[0].text;
+
       // Update the bot reply in the messages array
       setMessages((prevMessages) =>
         prevMessages.map((message, index) =>
@@ -46,7 +42,7 @@ const Chatbot = () => {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     // Scroll to the bottom of the chat when new messages are added
     const chatContainer = document.getElementById('chat-container');
